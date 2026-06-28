@@ -1,0 +1,510 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>MyApp Sentiment Analyser</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
+  <style>
+    /* ── Design tokens ─────────────────────────────────────── */
+    :root {
+      --bg:        #0d0f14;
+      --surface:   #161920;
+      --card:      #1c2028;
+      --border:    #2a2f3d;
+      --accent:    #3d6bff;
+      --accent2:   #7c4dff;
+      --pos:       #22d47a;
+      --neu:       #f5a623;
+      --neg:       #ff4f6b;
+      --text:      #e8eaf0;
+      --muted:     #6b7394;
+      --radius:    14px;
+      --font:      'Plus Jakarta Sans', sans-serif;
+      --mono:      'JetBrains Mono', monospace;
+    }
+
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: var(--font);
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+
+    /* ── Ambient gradient background ───────────────────────── */
+    body::before {
+      content: '';
+      position: fixed;
+      inset: 0;
+      background:
+        radial-gradient(ellipse 60% 40% at 20% 10%, rgba(61,107,255,.12) 0%, transparent 70%),
+        radial-gradient(ellipse 50% 35% at 80% 80%, rgba(124,77,255,.10) 0%, transparent 70%);
+      pointer-events: none;
+      z-index: 0;
+    }
+
+    .page-wrap {
+      position: relative;
+      z-index: 1;
+      width: 100%;
+      max-width: 780px;
+      padding: 48px 24px 80px;
+    }
+
+    /* ── Header ────────────────────────────────────────────── */
+    header { text-align: center; margin-bottom: 44px; }
+
+    .app-icons {
+      display: flex;
+      justify-content: center;
+      gap: 10px;
+      margin-bottom: 20px;
+    }
+
+    .app-chip {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      padding: 5px 12px;
+      border-radius: 999px;
+      border: 1px solid var(--border);
+      background: var(--surface);
+      font-size: 11px;
+      font-weight: 600;
+      color: var(--muted);
+      letter-spacing: .03em;
+      text-transform: uppercase;
+    }
+
+    .app-dot { width: 7px; height: 7px; border-radius: 50%; }
+    .tng  { background: #1b7e4b; }
+    .grab { background: #00b14f; }
+    .mys  { background: #005bbb; }
+
+    header h1 {
+      font-size: clamp(28px, 5vw, 40px);
+      font-weight: 800;
+      letter-spacing: -.02em;
+      background: linear-gradient(135deg, #e8eaf0 30%, #7c8abf);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+      line-height: 1.15;
+    }
+
+    header p {
+      margin-top: 10px;
+      color: var(--muted);
+      font-size: 15px;
+    }
+
+    /* ── Card ──────────────────────────────────────────────── */
+    .card {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 28px;
+      margin-bottom: 16px;
+    }
+
+    /* ── Language toggle ───────────────────────────────────── */
+    .lang-row {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin-bottom: 14px;
+    }
+
+    .lang-label {
+      font-size: 12px;
+      font-weight: 600;
+      color: var(--muted);
+      text-transform: uppercase;
+      letter-spacing: .06em;
+    }
+
+    .toggle-group {
+      display: flex;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      overflow: hidden;
+    }
+
+    .toggle-group button {
+      padding: 5px 14px;
+      border: none;
+      background: transparent;
+      color: var(--muted);
+      font-family: var(--font);
+      font-size: 13px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all .15s;
+    }
+
+    .toggle-group button.active {
+      background: var(--accent);
+      color: #fff;
+    }
+
+    /* ── Textarea ──────────────────────────────────────────── */
+    textarea {
+      width: 100%;
+      min-height: 130px;
+      padding: 16px;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      color: var(--text);
+      font-family: var(--font);
+      font-size: 15px;
+      line-height: 1.6;
+      resize: vertical;
+      outline: none;
+      transition: border-color .2s;
+    }
+
+    textarea:focus { border-color: var(--accent); }
+    textarea::placeholder { color: var(--muted); }
+
+    /* ── Analyse button ────────────────────────────────────── */
+    #analyseBtn {
+      margin-top: 16px;
+      width: 100%;
+      padding: 14px;
+      background: linear-gradient(135deg, var(--accent), var(--accent2));
+      border: none;
+      border-radius: 10px;
+      color: #fff;
+      font-family: var(--font);
+      font-size: 15px;
+      font-weight: 700;
+      cursor: pointer;
+      letter-spacing: .01em;
+      transition: opacity .15s, transform .1s;
+    }
+
+    #analyseBtn:hover  { opacity: .88; }
+    #analyseBtn:active { transform: scale(.98); }
+    #analyseBtn:disabled { opacity: .45; cursor: not-allowed; }
+
+    /* ── Result card ───────────────────────────────────────── */
+    #result { display: none; }
+
+    .result-top {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      margin-bottom: 24px;
+    }
+
+    .sentiment-badge {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 10px 20px;
+      border-radius: 999px;
+      font-size: 18px;
+      font-weight: 800;
+      letter-spacing: -.01em;
+    }
+
+    .sentiment-badge.Positive { background: rgba(34,212,122,.12); color: var(--pos); border: 1.5px solid rgba(34,212,122,.3); }
+    .sentiment-badge.Neutral  { background: rgba(245,166,35,.12);  color: var(--neu); border: 1.5px solid rgba(245,166,35,.3); }
+    .sentiment-badge.Negative { background: rgba(255,79,107,.12);  color: var(--neg); border: 1.5px solid rgba(255,79,107,.3); }
+
+    .badge-icon { font-size: 22px; }
+
+    .model-tag {
+      margin-left: auto;
+      font-size: 11px;
+      font-weight: 600;
+      color: var(--muted);
+      background: var(--surface);
+      border: 1px solid var(--border);
+      padding: 4px 10px;
+      border-radius: 6px;
+      font-family: var(--mono);
+    }
+
+    /* ── Confidence bars ───────────────────────────────────── */
+    .conf-label {
+      font-size: 11px;
+      font-weight: 700;
+      color: var(--muted);
+      text-transform: uppercase;
+      letter-spacing: .07em;
+      margin-bottom: 12px;
+    }
+
+    .conf-row {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      margin-bottom: 10px;
+    }
+
+    .conf-name {
+      width: 72px;
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--text);
+      flex-shrink: 0;
+    }
+
+    .conf-bar-track {
+      flex: 1;
+      height: 8px;
+      background: var(--surface);
+      border-radius: 4px;
+      overflow: hidden;
+    }
+
+    .conf-bar-fill {
+      height: 100%;
+      border-radius: 4px;
+      transition: width .6s cubic-bezier(.4,0,.2,1);
+    }
+
+    .conf-bar-fill.Positive { background: var(--pos); }
+    .conf-bar-fill.Neutral  { background: var(--neu); }
+    .conf-bar-fill.Negative { background: var(--neg); }
+
+    .conf-pct {
+      width: 42px;
+      text-align: right;
+      font-size: 13px;
+      font-weight: 700;
+      font-family: var(--mono);
+    }
+    .conf-pct.Positive { color: var(--pos); }
+    .conf-pct.Neutral  { color: var(--neu); }
+    .conf-pct.Negative { color: var(--neg); }
+
+    /* ── Details row ───────────────────────────────────────── */
+    .details-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px;
+      margin-top: 20px;
+    }
+
+    .detail-box {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 14px 16px;
+    }
+
+    .detail-box .det-label {
+      font-size: 10px;
+      font-weight: 700;
+      color: var(--muted);
+      text-transform: uppercase;
+      letter-spacing: .08em;
+      margin-bottom: 6px;
+    }
+
+    .detail-box .det-value {
+      font-size: 13px;
+      font-family: var(--mono);
+      color: var(--text);
+      word-break: break-word;
+      line-height: 1.5;
+    }
+
+    .emoji-list { font-size: 20px; letter-spacing: 3px; }
+
+    /* ── Error ─────────────────────────────────────────────── */
+    .error-msg {
+      color: var(--neg);
+      font-size: 13px;
+      margin-top: 10px;
+      display: none;
+    }
+
+    /* ── Footer ────────────────────────────────────────────── */
+    footer {
+      text-align: center;
+      color: var(--muted);
+      font-size: 12px;
+      margin-top: 12px;
+    }
+
+    footer span { color: var(--accent); font-weight: 600; }
+
+    /* ── Spinner ───────────────────────────────────────────── */
+    .spinner {
+      display: inline-block;
+      width: 16px;
+      height: 16px;
+      border: 2.5px solid rgba(255,255,255,.3);
+      border-top-color: #fff;
+      border-radius: 50%;
+      animation: spin .6s linear infinite;
+      vertical-align: middle;
+      margin-right: 6px;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    @media (max-width: 480px) {
+      .details-grid { grid-template-columns: 1fr; }
+      .app-icons { flex-wrap: wrap; }
+    }
+  </style>
+</head>
+<body>
+<div class="page-wrap">
+
+  <!-- Header -->
+  <header>
+    <div class="app-icons">
+      <div class="app-chip"><span class="app-dot tng"></span>Touch 'n Go</div>
+      <div class="app-chip"><span class="app-dot grab"></span>Grab</div>
+      <div class="app-chip"><span class="app-dot mys"></span>MySejahtera</div>
+    </div>
+    <h1>MyApp Sentiment Analyser</h1>
+    <p>Malaysian App Review · NLP Sentiment Detection · TNL6323</p>
+  </header>
+
+  <!-- Input card -->
+  <div class="card">
+    <div class="lang-row">
+      <span class="lang-label">Language</span>
+      <div class="toggle-group">
+        <button id="btnEn" class="active" onclick="setLang('en')">English</button>
+        <button id="btnMs" onclick="setLang('ms')">Bahasa Malaysia</button>
+      </div>
+    </div>
+
+    <textarea id="reviewInput"
+      placeholder="Paste or type an app review here… e.g. 'Touch n Go memang bagus, mudah guna!' or 'Grab keeps crashing every time I open it.'"></textarea>
+
+    <p class="error-msg" id="errorMsg">⚠ Please enter some text first.</p>
+
+    <button id="analyseBtn" onclick="analyse()">Analyse Sentiment</button>
+  </div>
+
+  <!-- Result card -->
+  <div class="card" id="result">
+    <div class="result-top">
+      <div class="sentiment-badge" id="badge">
+        <span class="badge-icon" id="badgeIcon"></span>
+        <span id="badgeLabel"></span>
+      </div>
+      <div class="model-tag" id="modelTag"></div>
+    </div>
+
+    <div class="conf-label">Confidence Scores</div>
+    <div id="confBars"></div>
+
+    <div class="details-grid">
+      <div class="detail-box">
+        <div class="det-label">Processed tokens</div>
+        <div class="det-value" id="processedText"></div>
+      </div>
+      <div class="detail-box">
+        <div class="det-label">Emojis detected</div>
+        <div class="det-value emoji-list" id="emojiList"></div>
+      </div>
+    </div>
+  </div>
+
+  <footer>TNL6323 Natural Language Processing · <span>App Review Sentiment</span> · Trimester Mar/Apr 2026</footer>
+</div>
+
+<script>
+  let currentLang = 'en';
+
+  function setLang(lang) {
+    currentLang = lang;
+    document.getElementById('btnEn').classList.toggle('active', lang === 'en');
+    document.getElementById('btnMs').classList.toggle('active', lang === 'ms');
+  }
+
+  const ICONS = { Positive: '😊', Neutral: '😐', Negative: '😞' };
+
+  async function analyse() {
+    const text = document.getElementById('reviewInput').value.trim();
+    const errEl = document.getElementById('errorMsg');
+    const btn   = document.getElementById('analyseBtn');
+
+    errEl.style.display = 'none';
+    if (!text) { errEl.style.display = 'block'; return; }
+
+    btn.disabled = true;
+    btn.innerHTML = '<span class="spinner"></span>Analysing…';
+    document.getElementById('result').style.display = 'none';
+
+    try {
+      const res  = await fetch('/predict', {
+        method:  'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body:    JSON.stringify({ text, lang: currentLang }),
+      });
+      const data = await res.json();
+
+      if (data.error) { errEl.textContent = data.error; errEl.style.display = 'block'; return; }
+
+      // Badge
+      const badge = document.getElementById('badge');
+      badge.className = 'sentiment-badge ' + data.sentiment;
+      document.getElementById('badgeIcon').textContent  = ICONS[data.sentiment] || '';
+      document.getElementById('badgeLabel').textContent = data.sentiment;
+      document.getElementById('modelTag').textContent   = data.model;
+
+      // Confidence bars
+      const barsEl = document.getElementById('confBars');
+      barsEl.innerHTML = '';
+      const order = ['Positive', 'Neutral', 'Negative'];
+      order.forEach(label => {
+        const pct = (data.confidence[label] ?? 0).toFixed(1);
+        barsEl.innerHTML += `
+          <div class="conf-row">
+            <span class="conf-name">${label}</span>
+            <div class="conf-bar-track">
+              <div class="conf-bar-fill ${label}" style="width:0%"
+                   data-target="${pct}"></div>
+            </div>
+            <span class="conf-pct ${label}">${pct}%</span>
+          </div>`;
+      });
+
+      // Animate bars after brief delay
+      requestAnimationFrame(() => {
+        document.querySelectorAll('.conf-bar-fill').forEach(el => {
+          el.style.width = el.dataset.target + '%';
+        });
+      });
+
+      // Details
+      document.getElementById('processedText').textContent =
+        data.processed || '(empty after preprocessing)';
+      document.getElementById('emojiList').textContent =
+        data.emojis.length ? data.emojis.join(' ') : '—';
+
+      document.getElementById('result').style.display = 'block';
+
+    } catch (err) {
+      errEl.textContent = 'Server error — make sure the Flask server is running.';
+      errEl.style.display = 'block';
+    } finally {
+      btn.disabled = false;
+      btn.innerHTML = 'Analyse Sentiment';
+    }
+  }
+
+  // Allow Ctrl+Enter / Cmd+Enter to submit
+  document.getElementById('reviewInput').addEventListener('keydown', e => {
+    if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') analyse();
+  });
+</script>
+</body>
+</html>
