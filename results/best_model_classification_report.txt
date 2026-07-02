@@ -1,12 +1,12 @@
 Best Model: Naive Bayes
-Parameters: {'alpha': 2.0, 'class_prior': None, 'fit_prior': True, 'force_alpha': 'warn'}
+Parameters: {'alpha': 2.0, 'class_prior': None, 'fit_prior': True, 'force_alpha': True}
 
               precision    recall  f1-score   support
 
-    Negative       0.47      0.47      0.47        30
-     Neutral       0.40      0.40      0.40        30
-    Positive       0.70      0.70      0.70        30
+    Negative       0.52      0.53      0.52        30
+     Neutral       0.43      0.43      0.43        30
+    Positive       0.69      0.67      0.68        30
 
-    accuracy                           0.52        90
-   macro avg       0.52      0.52      0.52        90
-weighted avg       0.52      0.52      0.52        90
+    accuracy                           0.54        90
+   macro avg       0.55      0.54      0.55        90
+weighted avg       0.55      0.54      0.55        90

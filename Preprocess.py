@@ -47,7 +47,15 @@ EN_STOP = set(stopwords.words("english"))
 MS_STOP = set(StopWordRemoverFactory().get_stop_words())
 # a few Manglish particles worth dropping regardless of language
 MANGLISH_STOP = {"lah", "lor", "meh", "wor", "ah", "ke", "kan", "je", "tu", "ni"}
-ALL_STOP = EN_STOP | MS_STOP | MANGLISH_STOP
+
+# NEGATION CUES - do NOT remove these. "not good" != "good",
+# "tak boleh" != "boleh". Stripping them collapses the negative/neutral
+# classes into positive. Combined with word bigrams (1,2), the vectorizer
+# then captures "not good" / "tak boleh" as features.
+NEGATION = {"no", "not", "nor", "never", "cannot", "none", "dont", "without",
+            "tidak", "tak", "bukan", "jangan", "belum", "tanpa", "tiada"}
+
+ALL_STOP = (EN_STOP | MS_STOP | MANGLISH_STOP) - NEGATION
 
 en_stemmer = SnowballStemmer("english")
 ms_stemmer = StemmerFactory().create_stemmer()
